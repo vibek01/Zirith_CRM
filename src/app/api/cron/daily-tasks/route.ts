@@ -116,10 +116,31 @@ export async function GET(req: Request) {
       if (userTasks.length > 0 && user.email) {
         // Send Email via Resend
         const emailContent = `
-          <h2>Your Daily Tasks for ${new Date().toDateString()}</h2>
-          <ul>
-            ${userTasks.map(t => `<li>${t.taskDescription}</li>`).join('')}
-          </ul>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 40px 20px; border-radius: 8px;">
+            <div style="background-color: white; padding: 32px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid #e5e7eb;">
+              <div style="text-align: center; margin-bottom: 32px;">
+                <h1 style="color: #111827; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.5px;">ZIRITH CRM</h1>
+                <p style="color: #6b7280; font-size: 14px; margin-top: 8px;">Daily Action Plan • ${new Date().toDateString()}</p>
+              </div>
+              
+              <div style="margin-bottom: 24px;">
+                <h2 style="color: #374151; font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Your Tasks Today</h2>
+                
+                <div style="display: block;">
+                  ${userTasks.map(t => `
+                    <div style="display: block; background-color: #f3f4f6; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 4px; margin-bottom: 12px;">
+                      <p style="margin: 0; color: #1f2937; font-size: 15px; font-weight: 500; line-height: 1.4;">${t.taskDescription}</p>
+                      <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 12px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">${t.taskType.replace('_', ' ')}</p>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+              
+              <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+                <a href="https://zirithcrm.vercel.app/tasks" style="background-color: #3b82f6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; display: inline-block;">Open Command Center</a>
+              </div>
+            </div>
+          </div>
         `;
 
         try {
