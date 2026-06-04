@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongoose';
 import { Deal } from '@/models/Deal';
 import { User } from '@/models/User';
+import { LeadAssignmentState } from '@/models/LeadAssignmentState';
 
 // Define a secret to secure the webhook endpoint
 const CLAY_WEBHOOK_SECRET = process.env.CLAY_WEBHOOK_SECRET;
@@ -55,25 +56,20 @@ export async function POST(req: Request) {
     }
 
     // Round-Robin Lead Assignment Logic
-    // 1. Get all eligible users
     const users = await User.find({ role: 'member' }).sort({ createdAt: 1 });
     let assignedOwnerId: string | undefined = undefined;
 
     if (users.length > 0) {
-      // 2. Find the last created deal that has an assigned owner
-      const lastDeal = await Deal.findOne({ assignedOwnerId: { $exists: true, $ne: null } }).sort({ createdAt: -1 });
+      // 1. Get atomic lock/increment for the round-robin counter
+      const state = await LeadAssignmentState.findOneAndUpdate(
+        { type: 'roundRobin' },
+        { $inc: { currentIndex: 1 } },
+        { upsert: true, new: true }
+      );
       
-      if (!lastDeal) {
-        // No deals yet, assign to the first user
-        assignedOwnerId = users[0]._id.toString();
-      } else {
-        // 3. Find whose turn it was last time
-        const lastUserIndex = users.findIndex(u => u._id.toString() === lastDeal.assignedOwnerId?.toString());
-        
-        // 4. Assign to the next user in the list, wrapping back to 0 if at the end
-        const nextUserIndex = lastUserIndex === -1 ? 0 : (lastUserIndex + 1) % users.length;
-        assignedOwnerId = users[nextUserIndex]._id.toString();
-      }
+      // 2. Use modulo to perfectly wrap around the array mathematically
+      const nextUserIndex = (state.currentIndex - 1) % users.length;
+      assignedOwnerId = users[nextUserIndex]._id.toString();
     }
 
     const newDeal = await Deal.create({
