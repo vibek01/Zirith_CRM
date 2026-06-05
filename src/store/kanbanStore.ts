@@ -8,6 +8,7 @@ interface KanbanStore {
   setDeals: (deals: KanbanDeal[]) => void;
   updateDealStage: (dealId: string, newStage: DealStage) => void;
   updateDealNotes: (dealId: string, note: any) => void;
+  removeDealNote: (dealId: string, noteId: string) => void;
   selectedDealIds: string[];
   toggleDealSelection: (dealId: string) => void;
   selectAllDeals: () => void;
@@ -33,6 +34,12 @@ export const useKanbanStore = create<KanbanStore>((set) => ({
     set((state) => ({
       deals: state.deals.map((deal) =>
         deal._id === dealId ? { ...deal, notes: [...(deal.notes || []), note] } : deal
+      )
+    })),
+  removeDealNote: (dealId, noteId) =>
+    set((state) => ({
+      deals: state.deals.map((deal) =>
+        deal._id === dealId ? { ...deal, notes: deal.notes?.filter((n: any) => n._id !== noteId) } : deal
       )
     })),
   selectedDealIds: [],

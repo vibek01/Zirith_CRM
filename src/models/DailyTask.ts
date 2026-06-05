@@ -18,6 +18,6 @@ const DailyTaskSchema: Schema = new Schema({
   isCompleted: { type: Boolean, default: false },
   dueDate: { type: Date, required: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export const DailyTask: Model<IDailyTask> = mongoose.models.DailyTask || mongoose.model<IDailyTask>('DailyTask', DailyTaskSchema);

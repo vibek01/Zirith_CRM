@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Mail, Link as LinkIcon, Globe, FileText } from 'lucide-react';
+import { Mail, Link as LinkIcon, Globe, FileText, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,7 +20,7 @@ interface KanbanCardProps {
 }
 
 export function KanbanCard({ deal }: KanbanCardProps) {
-  const { selectedDealIds, toggleDealSelection, updateDealNotes } = useKanbanStore();
+  const { selectedDealIds, toggleDealSelection, updateDealNotes, removeDealNote } = useKanbanStore();
   const isSelected = selectedDealIds.includes(deal._id);
 
   const {
@@ -58,6 +58,18 @@ export function KanbanCard({ deal }: KanbanCardProps) {
       toast.error('Failed to save note');
     } finally {
       setIsSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm('Delete this note?')) return;
+    try {
+      const res = await fetch(`/api/deals/${deal._id}/notes/${noteId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete note');
+      removeDealNote(deal._id, noteId);
+      toast.success('Note deleted');
+    } catch (error) {
+      toast.error('Failed to delete note');
     }
   };
 
@@ -148,9 +160,14 @@ export function KanbanCard({ deal }: KanbanCardProps) {
           <div className="flex items-center gap-2">
             <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
               <DialogTrigger render={
-                <Button variant="ghost" size="icon" onPointerDown={(e) => e.stopPropagation()} className="h-6 w-6 rounded-full text-zinc-500 hover:text-indigo-600 hover:bg-indigo-50" />
+                <Button variant="ghost" size="icon" onPointerDown={(e) => e.stopPropagation()} className="h-6 w-6 rounded-full text-zinc-500 hover:text-indigo-600 hover:bg-indigo-50 relative" />
               }>
                 <FileText className="h-3.5 w-3.5" />
+                {deal.notes && deal.notes.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-indigo-600 text-white text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[14px] h-[14px] flex items-center justify-center">
+                    {deal.notes.length}
+                  </span>
+                )}
               </DialogTrigger>
               <DialogContent onPointerDown={(e) => e.stopPropagation()}>
                 <DialogHeader>
@@ -161,9 +178,16 @@ export function KanbanCard({ deal }: KanbanCardProps) {
                 {deal.notes && deal.notes.length > 0 && (
                   <div className="max-h-[200px] overflow-y-auto space-y-2 mb-2 p-2 bg-zinc-50 dark:bg-zinc-900 rounded-md">
                     {deal.notes.map((n: any, i: number) => (
-                      <div key={i} className="text-sm pb-2 border-b border-zinc-200 dark:border-zinc-800 last:border-0 last:pb-0">
-                        <p className="text-xs text-zinc-500 mb-1">{new Date(n.createdAt).toLocaleString()}</p>
-                        <p className="text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">{n.text}</p>
+                      <div key={i} className="text-sm pb-2 border-b border-zinc-200 dark:border-zinc-800 last:border-0 last:pb-0 relative group">
+                        <div className="flex justify-between items-start">
+                          <p className="text-xs text-zinc-500 mb-1">{new Date(n.createdAt).toLocaleString()}</p>
+                          {n._id && (
+                            <button onClick={() => handleDeleteNote(n._id)} className="text-zinc-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-0.5">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap pr-4">{n.text}</p>
                       </div>
                     ))}
                   </div>

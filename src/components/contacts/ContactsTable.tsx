@@ -35,7 +35,7 @@ export function ContactsTable<TData extends { createdAt?: string, lastActivityDa
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [dateFilter, setDateFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("today");
   const [customDate, setCustomDate] = useState<string>("");
 
   const filteredData = useMemo(() => {

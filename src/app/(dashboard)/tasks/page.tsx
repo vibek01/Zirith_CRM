@@ -11,27 +11,27 @@ export const metadata = {
 
 export default async function TasksPage() {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/login");
-  }
+  const userId = (session?.user as any)?.id;
 
-  const userId = (session.user as any).id;
+  if (!userId) {
+    redirect('/login');
+  }
 
   await connectToDatabase();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
 
-  // Fetch all tasks for the current user (you can also filter by today if needed)
-  // For now, let's fetch all tasks that are due today or are overdue and pending
-  const tasks = await DailyTask.find({
+  // Fetch all tasks for the current user
+  // Get pending tasks or tasks completed today
+  const tasks = await DailyTask.find({ 
     userId,
     $or: [
       { isCompleted: false },
-      { dueDate: { $gte: today } } // Also get completed tasks for today
+      { isCompleted: true, updatedAt: { $gte: startOfToday } }
     ]
   })
-    .populate('dealId', 'companyName contactName')
+    .populate('dealId', 'companyName contactName email linkedInUrl website notes')
     .sort({ dueDate: 1, createdAt: -1 })
     .lean();
 
@@ -43,8 +43,17 @@ export default async function TasksPage() {
     isCompleted: t.isCompleted,
     dueDate: t.dueDate.toISOString(),
     dealId: t.dealId ? {
+      _id: t.dealId._id.toString(),
       companyName: t.dealId.companyName,
       contactName: t.dealId.contactName,
+      email: t.dealId.email,
+      linkedInUrl: t.dealId.linkedInUrl,
+      website: t.dealId.website,
+      notes: t.dealId.notes ? t.dealId.notes.map((n: any) => ({
+        _id: n._id?.toString(),
+        text: n.text,
+        createdAt: n.createdAt.toISOString()
+      })) : [],
     } : undefined,
   }));
 
