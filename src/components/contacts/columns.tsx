@@ -150,12 +150,14 @@ export const columns: ColumnDef<ContactDeal>[] = [
     header: "LinkedIn URL",
     cell: ({ row }) => {
       const url = row.getValue("linkedInUrl") as string;
-      return url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-bold hover:underline truncate max-w-[200px] inline-block">
+      if (!url) return <span className="text-zinc-400">-</span>;
+      
+      const href = url.startsWith('http') ? url : `https://${url}`;
+      
+      return (
+        <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-bold hover:underline truncate max-w-[200px] inline-block">
           {url}
         </a>
-      ) : (
-        <span className="text-zinc-400">-</span>
       );
     },
   },
@@ -178,12 +180,14 @@ export const columns: ColumnDef<ContactDeal>[] = [
     header: "Website URL",
     cell: ({ row }) => {
       const url = row.getValue("website") as string;
-      return url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-bold hover:underline truncate max-w-[200px] inline-block">
+      if (!url) return <span className="text-zinc-400">-</span>;
+      
+      const href = url.startsWith('http') ? url : `https://${url}`;
+      
+      return (
+        <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-bold hover:underline truncate max-w-[200px] inline-block">
           {url}
         </a>
-      ) : (
-        <span className="text-zinc-400">-</span>
       );
     },
   },
