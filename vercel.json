@@ -1,12 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/auto-push-leads",
-      "schedule": "30 0 * * *"
-    },
-    {
       "path": "/api/cron/daily-tasks",
-      "schedule": "40 0 * * *"
+      "schedule": "30 0 * * *"
     }
   ]
 }

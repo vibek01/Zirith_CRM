@@ -3,6 +3,8 @@ import connectToDatabase from '@/lib/mongoose';
 import { Deal } from '@/models/Deal';
 import { DailyTask } from '@/models/DailyTask';
 import { User } from '@/models/User';
+import { LeadBank } from '@/models/LeadBank';
+import { LeadAssignmentState } from '@/models/LeadAssignmentState';
 import { Resend } from 'resend';
 import { DealStage } from '@/types';
 
@@ -17,6 +19,55 @@ export async function GET(req: Request) {
     }
 
     await connectToDatabase();
+
+    // --- PHASE 1: AUTO-PUSH LEADS FROM BANK ---
+    const pendingLeads = await LeadBank.find({ status: 'pending' }).limit(50).sort({ createdAt: 1 });
+    
+    if (pendingLeads.length > 0) {
+      const usersForRobin = await User.find({ role: 'member' }).sort({ createdAt: 1 });
+      
+      for (const lead of pendingLeads) {
+        // Prevent Duplicates in Pipeline
+        const queryConditions: any[] = [
+          { companyName: { $regex: new RegExp(`^${lead.companyName}$`, 'i') } }
+        ];
+        if (lead.website) queryConditions.push({ website: lead.website });
+        if (lead.linkedInUrl) queryConditions.push({ linkedInUrl: lead.linkedInUrl });
+
+        const existingDeal = await Deal.findOne({ $or: queryConditions });
+        
+        if (!existingDeal) {
+          // Assign using round robin
+          let assignedOwnerId: string | undefined = undefined;
+
+          if (usersForRobin.length > 0) {
+            const state = await LeadAssignmentState.findOneAndUpdate(
+              { type: 'roundRobin' },
+              { $inc: { currentIndex: 1 } },
+              { upsert: true, new: true }
+            );
+            const nextUserIndex = (state.currentIndex - 1) % usersForRobin.length;
+            assignedOwnerId = usersForRobin[nextUserIndex]._id.toString();
+          }
+
+          await Deal.create({
+            companyName: lead.companyName,
+            website: lead.website,
+            instagramLink: lead.instagramLink,
+            linkedInUrl: lead.linkedInUrl,
+            email: lead.email,
+            contactName: lead.contactName,
+            currentStage: 'prospecting',
+            assignedOwnerId,
+          });
+        }
+
+        // Mark lead as dispatched
+        lead.status = 'dispatched';
+        await lead.save();
+      }
+    }
+    // --- END PHASE 1 ---
 
     // 1. Evaluate Deals and Generate Tasks
     const activeDeals = await Deal.find({
