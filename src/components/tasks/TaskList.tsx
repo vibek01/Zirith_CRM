@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckSquare, Calendar, Building2, User as UserIcon, Mail, Link as LinkIcon, Globe, FileText, Trash2, AlertCircle, Flame } from "lucide-react";
+import { CheckSquare, Calendar, Building2, User as UserIcon, Mail, Link as LinkIcon, Globe, FileText, Trash2, AlertCircle, Flame, UserX, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,17 +39,20 @@ function TaskListItem({
   isCompletedGroup, 
   toggleTaskCompletion,
   isOverdue = false,
-  daysOverdue = 0
+  daysOverdue = 0,
+  handleNotAccepted
 }: { 
   task: Task; 
   isCompletedGroup: boolean;
   toggleTaskCompletion: (id: string, status: boolean) => void;
   isOverdue?: boolean;
   daysOverdue?: number;
+  handleNotAccepted: (id: string) => Promise<void>;
 }) {
   const [note, setNote] = useState('');
   const [isNoteOpen, setIsNoteOpen] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isSnoozing, setIsSnoozing] = useState(false);
   const [localNotes, setLocalNotes] = useState(task.dealId?.notes || []);
 
   const handleSaveNote = async () => {
@@ -218,6 +221,25 @@ function TaskListItem({
               </DialogContent>
             </Dialog>
           )}
+
+          {/* Not Accepted Button */}
+          {task.dealId && !isCompletedGroup && task.taskType !== 'connection_request' && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isSnoozing}
+              onClick={async (e) => {
+                e.stopPropagation();
+                setIsSnoozing(true);
+                await handleNotAccepted(task._id);
+                setIsSnoozing(false);
+              }}
+              className="mt-1 text-[10px] sm:text-xs h-7 px-2 text-red-600 border-red-200 bg-red-50/50 hover:bg-red-100 hover:text-red-800 font-bold dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/50"
+            >
+              {isSnoozing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <UserX className="h-3 w-3 mr-1" />}
+              Not Accepted Yet
+            </Button>
+          )}
         </div>
       </div>
     </li>
@@ -240,6 +262,26 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
     } catch (error) {
       toast.error("Failed to update task status");
       setTasks(tasks.map(t => t._id === taskId ? { ...t, isCompleted: !newStatus } : t));
+    }
+  };
+
+  const handleNotAccepted = async (taskId: string) => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/not-accepted`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to process action");
+      
+      const data = await res.json();
+      
+      if (data.action === 'unqualified') {
+        toast.success("Connection never accepted. Deal moved to Unqualified.");
+      } else {
+        toast.success(`Deal snoozed! Will try again in 2 days. (Strike ${data.retryCount}/3)`);
+      }
+      
+      // Mark task as completed locally to remove it from pending list
+      setTasks(tasks.map(t => t._id === taskId ? { ...t, isCompleted: true } : t));
+    } catch (error) {
+      toast.error("An error occurred while snoozing.");
     }
   };
 
@@ -319,6 +361,7 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
                   toggleTaskCompletion={toggleTaskCompletion}
                   isOverdue={isOverdue}
                   daysOverdue={daysOverdue}
+                  handleNotAccepted={handleNotAccepted}
                 />
               );
             })}

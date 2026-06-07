@@ -10,6 +10,7 @@ export interface IDeal extends Document {
   contactName?: string;
   currentStage: DealStage;
   assignedOwnerId?: mongoose.Types.ObjectId;
+  connectionRetryCount?: number;
   lastActivityDate: Date;
   createdAt: Date;
   notes: { text: string; createdAt: Date }[];
@@ -28,6 +29,7 @@ const DealSchema: Schema = new Schema({
     default: 'prospecting' 
   },
   assignedOwnerId: { type: Schema.Types.ObjectId, ref: 'User' },
+  connectionRetryCount: { type: Number, default: 0 },
   lastActivityDate: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
   notes: [{

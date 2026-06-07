@@ -36,6 +36,11 @@ export default async function KanbanPage() {
       assignedOwnerId: deal.assignedOwnerId?.toString(),
       lastActivityDate: deal.lastActivityDate.toISOString(),
       createdAt: deal.createdAt.toISOString(),
+      notes: deal.notes ? deal.notes.map((n: any) => ({
+        ...n,
+        _id: n._id.toString(),
+        createdAt: n.createdAt.toISOString(),
+      })) : [],
     }));
   }
 
