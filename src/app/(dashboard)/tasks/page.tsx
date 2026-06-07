@@ -5,6 +5,7 @@ import { DailyTask } from "@/models/DailyTask";
 import "@/models/Deal"; // Register schema for populate
 import { TaskList } from "@/components/tasks/TaskList";
 import { CheckSquare } from "lucide-react";
+import { cookies } from "next/headers";
 
 export const metadata = {
   title: "Daily Tasks | ZIRITH CRM",
@@ -13,6 +14,7 @@ export const metadata = {
 export default async function TasksPage() {
   const session = await auth();
   const userId = (session?.user as any)?.id;
+  const isAdmin = session?.user?.email === 'binforpc@gmail.com';
 
   if (!userId) {
     redirect('/login');
@@ -20,18 +22,34 @@ export default async function TasksPage() {
 
   await connectToDatabase();
 
+  let targetUserId = userId;
+  if (isAdmin) {
+    const cookieStore = await cookies();
+    const adminViewUserId = cookieStore.get('adminViewUserId')?.value;
+    if (adminViewUserId === 'all') {
+      targetUserId = null;
+    } else if (adminViewUserId) {
+      targetUserId = adminViewUserId;
+    }
+  }
+
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  // Fetch all tasks for the current user
-  // Get pending tasks or tasks completed today
-  const tasks = await DailyTask.find({ 
-    userId,
+  const query: any = {
     $or: [
       { isCompleted: false },
       { isCompleted: true, updatedAt: { $gte: startOfToday } }
     ]
-  })
+  };
+
+  if (targetUserId) {
+    query.userId = targetUserId;
+  }
+
+  // Fetch all tasks for the target user (or all users)
+  // Get pending tasks or tasks completed today
+  const tasks = await DailyTask.find(query)
     .populate('dealId', 'companyName contactName email linkedInUrl website notes')
     .sort({ dueDate: 1, createdAt: -1 })
     .lean();

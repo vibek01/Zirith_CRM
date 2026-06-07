@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckSquare, Calendar, Building2, User as UserIcon, Mail, Link as LinkIcon, Globe, FileText, Trash2, AlertCircle, Flame, UserX, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -248,6 +248,10 @@ function TaskListItem({
 
 export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
   const [tasks, setTasks] = useState(initialTasks);
+
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
 
   const toggleTaskCompletion = async (taskId: string, newStatus: boolean) => {
     setTasks(tasks.map(t => t._id === taskId ? { ...t, isCompleted: newStatus } : t));

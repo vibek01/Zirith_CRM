@@ -3,12 +3,14 @@ import { KanbanHeaderActions } from "@/components/kanban/KanbanHeaderActions";
 import connectToDatabase from "@/lib/mongoose";
 import { Deal } from "@/models/Deal";
 import { auth } from "@/auth";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 export default async function KanbanPage() {
   const session = await auth();
   const userId = (session?.user as any)?.id;
+  const isAdmin = session?.user?.email === 'binforpc@gmail.com';
 
   const isMockEnv = process.env.MOCK_ENV === "true";
   let serializedDeals: any[] = [];
@@ -25,8 +27,20 @@ export default async function KanbanPage() {
   } else if (userId) {
     await connectToDatabase();
     
-    // Fetch deals from MongoDB filtered by the logged-in user's ID
-    const deals = await Deal.find({ assignedOwnerId: userId }).lean();
+    let targetUserId = userId;
+    if (isAdmin) {
+      const cookieStore = await cookies();
+      const adminViewUserId = cookieStore.get('adminViewUserId')?.value;
+      if (adminViewUserId === 'all') {
+        targetUserId = null;
+      } else if (adminViewUserId) {
+        targetUserId = adminViewUserId;
+      }
+    }
+    
+    // Fetch deals from MongoDB filtered by the target user's ID
+    const query = targetUserId ? { assignedOwnerId: targetUserId } : {};
+    const deals = await Deal.find(query).lean();
     
     // Convert _id to string for client component serialization
     serializedDeals = deals.map(deal => ({

@@ -3,12 +3,14 @@ import { columns } from "@/components/contacts/columns";
 import connectToDatabase from "@/lib/mongoose";
 import { Deal } from "@/models/Deal";
 import { auth } from "@/auth";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContactsPage() {
   const session = await auth();
   const userId = (session?.user as any)?.id;
+  const isAdmin = session?.user?.email === 'binforpc@gmail.com';
 
   const isMockEnv = process.env.MOCK_ENV === "true";
   let serializedDeals: any[] = [];
@@ -25,8 +27,20 @@ export default async function ContactsPage() {
   } else if (userId) {
     await connectToDatabase();
     
+    let targetUserId = userId;
+    if (isAdmin) {
+      const cookieStore = await cookies();
+      const adminViewUserId = cookieStore.get('adminViewUserId')?.value;
+      if (adminViewUserId === 'all') {
+        targetUserId = null;
+      } else if (adminViewUserId) {
+        targetUserId = adminViewUserId;
+      }
+    }
+    
     // Fetch deals from MongoDB filtered by assignedOwnerId
-    const deals = await Deal.find({ assignedOwnerId: userId }).sort({ createdAt: -1 }).lean();
+    const query = targetUserId ? { assignedOwnerId: targetUserId } : {};
+    const deals = await Deal.find(query).sort({ createdAt: -1 }).lean();
     
     serializedDeals = deals.map(deal => ({
       id: deal._id.toString(),

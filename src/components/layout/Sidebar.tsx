@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, LogOut, CheckSquare, Database } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
+import { AdminUserSelect } from './AdminUserSelect';
 
 const navItems = [
   { name: 'Pipeline', href: '/kanban', icon: LayoutDashboard },
@@ -45,17 +46,23 @@ export function Sidebar() {
         })}
 
         {session?.user?.email === 'binforpc@gmail.com' && (
-          <Link
-            href="/lead-bank"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors mt-8 ${
-              pathname === '/lead-bank'
-                ? 'bg-emerald-600 text-white font-medium shadow-sm' 
-                : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100'
-            }`}
-          >
-            <Database className="h-5 w-5 text-emerald-400" />
-            Lead Bank
-          </Link>
+          <>
+            <Link
+              href="/lead-bank"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors mt-8 ${
+                pathname === '/lead-bank'
+                  ? 'bg-emerald-600 text-white font-medium shadow-sm' 
+                  : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100'
+              }`}
+            >
+              <Database className="h-5 w-5 text-emerald-400" />
+              Lead Bank
+            </Link>
+            
+            {session?.user && (
+              <AdminUserSelect currentUserId={(session.user as any).id} />
+            )}
+          </>
         )}
       </nav>
 
