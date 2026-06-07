@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import connectToDatabase from "@/lib/mongoose";
 import { DailyTask } from "@/models/DailyTask";
+import "@/models/Deal"; // Register schema for populate
 import { TaskList } from "@/components/tasks/TaskList";
 import { CheckSquare } from "lucide-react";
 
